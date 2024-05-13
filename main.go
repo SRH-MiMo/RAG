@@ -1,6 +1,8 @@
 package main
 
-import "RAG/controllers"
+import (
+	"RAG/controllers"
+)
 
 func main() {
 	controllers.NewController()

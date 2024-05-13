@@ -2,37 +2,63 @@ package scripts
 
 import (
 	"context"
-	"fmt"
-	"github.com/sashabaranov/go-openai"
+	"github.com/google/generative-ai-go/genai"
+	"github.com/joho/godotenv"
+	"google.golang.org/api/option"
+	"log"
 	"os"
 )
 
-func RunDream(text string) string {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-
-	if apiKey == "" {
-		fmt.Println("Please set your OpenAI API key as OPENAI_API_KEY environment variable.")
-		return ""
+func RunDream(text string) genai.Part {
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic("Error loading .env file")
 	}
 
-	client := openai.NewClient(apiKey)
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: text,
-				},
-			},
-		},
-	)
+	apiKey := os.Getenv("GEMINI_API_KEY")
+
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx,
+		option.WithAPIKey(apiKey))
 
 	if err != nil {
-		fmt.Printf("ChatCompletion error: %v\n", err)
-		return ""
+		log.Fatal(err)
 	}
 
-	return resp.Choices[0].Message.Content
+	defer client.Close()
+
+	model := client.GenerativeModel("gemini-pro")
+	cs := model.StartChat()
+	cs.History = []*genai.Content{
+		&genai.Content{
+			Parts: []genai.Part{
+				genai.Text(text),
+			},
+			Role: "user",
+		},
+		&genai.Content{
+			Parts: []genai.Part{
+				genai.Text("만나서 반갑습니다, 저는 해몽 AI 루나입니다."),
+			},
+			Role: "model",
+		},
+	}
+	resp, err := cs.SendMessage(ctx, genai.Text(text))
+	if err != nil {
+		log.Fatal(err)
+	}
+	str := PrintModelResp(resp)
+	return str
+}
+
+func PrintModelResp(resp *genai.GenerateContentResponse) genai.Part {
+	var content genai.Part
+	for _, cand := range resp.Candidates {
+		if cand.Content != nil {
+			for _, part := range cand.Content.Parts {
+				content = part // genai.Part의 Text를 반환합니다.
+			}
+		}
+	}
+	return content
 }
