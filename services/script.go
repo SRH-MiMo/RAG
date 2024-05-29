@@ -21,7 +21,7 @@ func DreamDream(c *gin.Context) {
 		return
 	}
 
-	msg := scripts.RunDream(text.Msg + "이 꿈을 문장으로 해몽 해줘")
+	msg := scripts.RunDream(text.Msg + "이 꿈을 문장으로 해몽 해줘 한국어로 말해줘")
 	c.JSON(http.StatusOK, gin.H{
 		"message": msg,
 	})
